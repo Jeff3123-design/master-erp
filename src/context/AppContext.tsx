@@ -1,0 +1,398 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User, Product, Customer, Supplier, Sale, Purchase, VendorBill, Expense, AuditLog, AIDocument, NotificationItem } from '../types';
+import {
+  INITIAL_USER,
+  INITIAL_SALES_PERMISSIONS,
+  INITIAL_PRODUCTS,
+  INITIAL_CUSTOMERS,
+  INITIAL_SUPPLIERS,
+  INITIAL_SALES,
+  INITIAL_PURCHASES,
+  INITIAL_VENDOR_BILLS,
+  INITIAL_EXPENSES,
+  INITIAL_AUDIT_LOGS,
+  INITIAL_AI_DOCUMENTS,
+  INITIAL_NOTIFICATIONS,
+} from '../lib/mockData';
+
+interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
+
+interface AppContextType {
+  currentUser: User;
+  setCurrentUser: (user: User) => void;
+  salesPermissions: Record<string, boolean>;
+  updateSalesPermission: (moduleKey: string, allowed: boolean) => void;
+
+  products: Product[];
+  customers: Customer[];
+  suppliers: Supplier[];
+  sales: Sale[];
+  purchases: Purchase[];
+  vendorBills: VendorBill[];
+  expenses: Expense[];
+  auditLogs: AuditLog[];
+  aiDocuments: AIDocument[];
+  notifications: NotificationItem[];
+
+  // Dynamic Actions
+  addProduct: (product: Omit<Product, 'id'>) => void;
+  updateProduct: (id: string, updates: Partial<Product>) => void;
+  adjustStock: (productId: string, newStock: number, reason: string) => void;
+
+  addSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Sale;
+  voidSale: (saleId: string, reason: string) => void;
+
+  addCustomer: (customer: Omit<Customer, 'id' | 'outstandingBalance' | 'totalPurchases'>) => void;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'balanceOwed'>) => void;
+
+  addPurchase: (purchase: Omit<Purchase, 'id' | 'createdAt'>) => void;
+  updatePurchaseStatus: (id: string, status: Purchase['status']) => void;
+
+  addExpense: (expense: Omit<Expense, 'id'>) => void;
+  payVendorBill: (id: string) => void;
+
+  addAuditLog: (action: string, module: string, recordId: string, previousValue: any, newValue: any) => void;
+  markNotificationsAsRead: () => void;
+
+  // Search Modal state
+  isSearchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
+
+  // Notification Drawer state
+  isNotificationOpen: boolean;
+  setNotificationOpen: (open: boolean) => void;
+
+  // Toasts
+  toasts: Toast[];
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  removeToast: (id: string) => void;
+
+  // Global Active Navigation Route
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
+  const [salesPermissions, setSalesPermissions] = useState<Record<string, boolean>>(INITIAL_SALES_PERMISSIONS);
+
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
+  const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
+  const [purchases, setPurchases] = useState<Purchase[]>(INITIAL_PURCHASES);
+  const [vendorBills, setVendorBills] = useState<VendorBill[]>(INITIAL_VENDOR_BILLS);
+  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  const [aiDocuments, setAiDocuments] = useState<AIDocument[]>(INITIAL_AI_DOCUMENTS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+
+  const [isSearchOpen, setSearchOpen] = useState(false);
+  const [isNotificationOpen, setNotificationOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      removeToast(id);
+    }, 3500);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const addAuditLog = (action: string, module: string, recordId: string, previousValue: any, newValue: any) => {
+    const log: AuditLog = {
+      id: `aud-${Date.now()}`,
+      userId: currentUser.id,
+      userName: currentUser.fullName,
+      action,
+      module,
+      recordId,
+      previousValue,
+      newValue,
+      timestamp: new Date().toISOString(),
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+  };
+
+  const updateSalesPermission = (moduleKey: string, allowed: boolean) => {
+    setSalesPermissions((prev) => ({ ...prev, [moduleKey]: allowed }));
+    addAuditLog('PERMISSION_CHANGE', 'Admin', moduleKey, { [moduleKey]: !allowed }, { [moduleKey]: allowed });
+    showToast(`Sales team access for ${moduleKey} updated`, 'info');
+  };
+
+  const addProduct = (productData: Omit<Product, 'id'>) => {
+    const newProduct: Product = {
+      ...productData,
+      id: `p-${Date.now()}`,
+    };
+    setProducts((prev) => [newProduct, ...prev]);
+    addAuditLog('PRODUCT_CREATED', 'Products', newProduct.sku, null, newProduct);
+    showToast(`Product "${newProduct.name}" created successfully`);
+  };
+
+  const updateProduct = (id: string, updates: Partial<Product>) => {
+    const existing = products.find((p) => p.id === id);
+    if (!existing) return;
+
+    if (updates.sellingPrice !== undefined && updates.sellingPrice !== existing.sellingPrice) {
+      addAuditLog('PRICE_CHANGE', 'Products', existing.sku, { sellingPrice: existing.sellingPrice }, { sellingPrice: updates.sellingPrice });
+    }
+
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
+    showToast(`Product updated successfully`);
+  };
+
+  const adjustStock = (productId: string, newStock: number, reason: string) => {
+    const prod = products.find((p) => p.id === productId);
+    if (!prod) return;
+
+    const prevStock = prod.stockQuantity;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, stockQuantity: newStock } : p))
+    );
+
+    addAuditLog('STOCK_ADJUSTMENT', 'Inventory', prod.sku, { stockQuantity: prevStock }, { stockQuantity: newStock, reason });
+
+    if (newStock <= prod.minStockLevel) {
+      const notif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        type: newStock === 0 ? 'OUT_OF_STOCK' : 'LOW_STOCK',
+        title: newStock === 0 ? 'Out of Stock Alert' : 'Low Stock Alert',
+        message: `${prod.name} stock level is now ${newStock} units.`,
+        severity: newStock === 0 ? 'danger' : 'warning',
+        timestamp: 'Just now',
+        read: false,
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
+
+    showToast(`Stock updated for ${prod.name}`);
+  };
+
+  const addSale = (saleData: Omit<Sale, 'id' | 'createdAt'>) => {
+    const newSale: Sale = {
+      ...saleData,
+      id: `sale-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    newSale.items.forEach((item) => {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === item.productId
+            ? { ...p, stockQuantity: Math.max(0, p.stockQuantity - item.quantity) }
+            : p
+        )
+      );
+    });
+
+    if (newSale.paymentMethod === 'CREDIT' && newSale.customerId) {
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.id === newSale.customerId
+            ? {
+                ...c,
+                outstandingBalance: c.outstandingBalance + newSale.totalAmount,
+                totalPurchases: c.totalPurchases + newSale.totalAmount,
+              }
+            : c
+        )
+      );
+    }
+
+    setSales((prev) => [newSale, ...prev]);
+    addAuditLog('SALE_RECORDED', 'Sales', newSale.invoiceNumber, null, { total: newSale.totalAmount, method: newSale.paymentMethod });
+    showToast(`Sale ${newSale.invoiceNumber} completed!`);
+    return newSale;
+  };
+
+  const voidSale = (saleId: string, reason: string) => {
+    const targetSale = sales.find((s) => s.id === saleId);
+    if (!targetSale || targetSale.status === 'VOIDED') return;
+
+    targetSale.items.forEach((item) => {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === item.productId ? { ...p, stockQuantity: p.stockQuantity + item.quantity } : p))
+      );
+    });
+
+    if (targetSale.paymentMethod === 'CREDIT' && targetSale.customerId) {
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.id === targetSale.customerId
+            ? { ...c, outstandingBalance: Math.max(0, c.outstandingBalance - targetSale.totalAmount) }
+            : c
+        )
+      );
+    }
+
+    setSales((prev) =>
+      prev.map((s) => (s.id === saleId ? { ...s, status: 'VOIDED' } : s))
+    );
+
+    addAuditLog('SALE_VOIDED', 'Sales', targetSale.invoiceNumber, { status: targetSale.status }, { status: 'VOIDED', reason });
+    showToast(`Sale ${targetSale.invoiceNumber} voided`, 'error');
+  };
+
+  const addCustomer = (cData: Omit<Customer, 'id' | 'outstandingBalance' | 'totalPurchases'>) => {
+    const newCust: Customer = {
+      ...cData,
+      id: `c-${Date.now()}`,
+      outstandingBalance: 0,
+      totalPurchases: 0,
+    };
+    setCustomers((prev) => [newCust, ...prev]);
+    showToast(`Customer ${newCust.name} added`);
+  };
+
+  const addSupplier = (sData: Omit<Supplier, 'id' | 'balanceOwed'>) => {
+    const newSupp: Supplier = {
+      ...sData,
+      id: `s-${Date.now()}`,
+      balanceOwed: 0,
+    };
+    setSuppliers((prev) => [newSupp, ...prev]);
+    showToast(`Supplier ${newSupp.companyName} added`);
+  };
+
+  const addPurchase = (pData: Omit<Purchase, 'id' | 'createdAt'>) => {
+    const newPurchase: Purchase = {
+      ...pData,
+      id: `po-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setPurchases((prev) => [newPurchase, ...prev]);
+    addAuditLog('PURCHASE_CREATED', 'Purchasing', newPurchase.poNumber, null, newPurchase);
+    showToast(`Purchase order ${newPurchase.poNumber} created`);
+  };
+
+  const updatePurchaseStatus = (id: string, status: Purchase['status']) => {
+    const existing = purchases.find((p) => p.id === id);
+    if (!existing) return;
+
+    setPurchases((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status } : p))
+    );
+
+    if (status === 'APPROVED') {
+      addAuditLog('PURCHASE_APPROVED', 'Purchasing', existing.poNumber, { status: existing.status }, { status });
+    }
+
+    showToast(`PO ${existing.poNumber} status changed to ${status}`);
+  };
+
+  const addExpense = (expData: Omit<Expense, 'id'>) => {
+    const newExp: Expense = {
+      ...expData,
+      id: `exp-${Date.now()}`,
+    };
+    setExpenses((prev) => [newExp, ...prev]);
+
+    if (newExp.amount > 2000) {
+      const notif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        type: 'LARGE_EXPENSE',
+        title: 'Large Expense Recorded',
+        message: `$${newExp.amount.toLocaleString()} recorded under ${newExp.category}`,
+        severity: 'warning',
+        timestamp: 'Just now',
+        read: false,
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
+
+    addAuditLog('EXPENSE_RECORDED', 'Finance', newExp.id, null, newExp);
+    showToast(`Expense recorded`);
+  };
+
+  const payVendorBill = (id: string) => {
+    const bill = vendorBills.find((b) => b.id === id);
+    if (!bill) return;
+
+    setVendorBills((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: 'PAID' } : b))
+    );
+
+    addAuditLog('PAYMENT_RECORDED', 'Finance', bill.billNumber, { status: bill.status }, { status: 'PAID' });
+    showToast(`Vendor bill ${bill.billNumber} marked as paid`);
+  };
+
+  const markNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <AppContext.Provider
+      value={{
+        currentUser,
+        setCurrentUser,
+        salesPermissions,
+        updateSalesPermission,
+        products,
+        customers,
+        suppliers,
+        sales,
+        purchases,
+        vendorBills,
+        expenses,
+        auditLogs,
+        aiDocuments,
+        notifications,
+        addProduct,
+        updateProduct,
+        adjustStock,
+        addSale,
+        voidSale,
+        addCustomer,
+        addSupplier,
+        addPurchase,
+        updatePurchaseStatus,
+        addExpense,
+        payVendorBill,
+        addAuditLog,
+        markNotificationsAsRead,
+        isSearchOpen,
+        setSearchOpen,
+        isNotificationOpen,
+        setNotificationOpen,
+        toasts,
+        showToast,
+        removeToast,
+        activeTab,
+        setActiveTab,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useApp must be used within AppProvider');
+  return context;
+};
