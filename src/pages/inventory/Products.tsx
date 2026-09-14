@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
+import { Pagination } from '../../components/common/Pagination';
 import { Search, Plus, Edit2, X } from 'lucide-react';
 
 export const Products: React.FC = () => {
@@ -9,6 +10,10 @@ export const Products: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
@@ -28,6 +33,12 @@ export const Products: React.FC = () => {
       p.sku.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesQ;
   });
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleOpenAdd = () => {
     setEditingProduct(null);
@@ -110,7 +121,10 @@ export const Products: React.FC = () => {
             type="text"
             placeholder="Search by product name or SKU..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl text-sm focus:outline-none"
           />
         </div>
@@ -118,7 +132,10 @@ export const Products: React.FC = () => {
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setCurrentPage(1);
+              }}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${
                 selectedCategory === cat ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300'
               }`}
@@ -144,7 +161,7 @@ export const Products: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-sm">
-              {filteredProducts.map((p) => {
+              {paginatedProducts.map((p) => {
                 const low = p.stockQuantity <= p.minStockLevel;
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-navy-800/40">
@@ -175,6 +192,14 @@ export const Products: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredProducts.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
       </div>
 
       {showAddModal && (

@@ -9,6 +9,9 @@ import {
   Trash2,
   CheckCircle,
   Barcode,
+  Camera,
+  X,
+  DollarSign,
 } from 'lucide-react';
 
 interface CartItem {
@@ -24,8 +27,10 @@ export const POS: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'CREDIT'>('CASH');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [tenderedAmount, setTenderedAmount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
   const [lastInvoiceNumber, setLastInvoiceNumber] = useState('');
 
   const categories = ['ALL', ...Array.from(new Set(products.map((p) => p.category)))];
@@ -86,10 +91,16 @@ export const POS: React.FC = () => {
   const subtotal = cart.reduce((sum, item) => sum + item.product.sellingPrice * item.quantity, 0);
   const tax = subtotal * 0.08;
   const total = Math.max(0, subtotal + tax - discountAmount);
+  const changeDue = Math.max(0, tenderedAmount - total);
 
   const handleCheckout = () => {
     if (cart.length === 0) {
       showToast('Cart is currently empty!', 'error');
+      return;
+    }
+
+    if (paymentMethod === 'CASH' && tenderedAmount < total) {
+      showToast(`Tendered amount ($${tenderedAmount.toFixed(2)}) is less than total payable ($${total.toFixed(2)})`, 'error');
       return;
     }
 
@@ -136,23 +147,40 @@ export const POS: React.FC = () => {
       setShowSuccessModal(true);
       setCart([]);
       setDiscountAmount(0);
+      setTenderedAmount(0);
       setSelectedCustomer(null);
     }, 600);
+  };
+
+  const handleSimulateScan = (product: Product) => {
+    addToCart(product);
+    setShowScannerModal(false);
+    showToast(`Barcode Scanned: ${product.name}`, 'success');
   };
 
   return (
     <div className="h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 animate-fade-in overflow-hidden">
       <div className="flex-1 bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-4 flex flex-col min-h-0">
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="w-5 h-5 absolute left-3.5 top-3 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by product name, SKU, or scan Barcode..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
+          <div className="relative flex-1 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 absolute left-3.5 top-3 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search product name, SKU, or scan Barcode..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <button
+              onClick={() => setShowScannerModal(true)}
+              className="p-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all shrink-0"
+              title="Camera Barcode Scanner"
+            >
+              <Camera className="w-4 h-4" />
+              <span className="hidden sm:inline">Scanner</span>
+            </button>
           </div>
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
             {categories.map((cat) => (
@@ -320,7 +348,10 @@ export const POS: React.FC = () => {
             {(['CASH', 'CARD', 'CREDIT'] as const).map((method) => (
               <button
                 key={method}
-                onClick={() => setPaymentMethod(method)}
+                onClick={() => {
+                  setPaymentMethod(method);
+                  if (method === 'CASH') setTenderedAmount(total);
+                }}
                 className={`py-2 rounded-xl text-xs font-bold transition-all border ${
                   paymentMethod === method
                     ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
@@ -331,6 +362,38 @@ export const POS: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {paymentMethod === 'CASH' && (
+            <div className="space-y-2 p-2 bg-slate-50 dark:bg-navy-800/80 rounded-xl border border-slate-200 dark:border-navy-700 text-xs">
+              <span className="font-semibold text-slate-400 uppercase text-[10px] block">Quick Cash Presets</span>
+              <div className="flex gap-1.5">
+                {[10, 20, 50, 100, 500].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setTenderedAmount(amt)}
+                    className="flex-1 py-1 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 hover:border-brand-500 rounded font-bold text-slate-700 dark:text-slate-200 text-[11px]"
+                  >
+                    ${amt}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <span>Tendered ($):</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={tenderedAmount || ''}
+                  onChange={(e) => setTenderedAmount(Number(e.target.value))}
+                  className="w-24 text-right p-1 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded text-xs font-bold text-emerald-600"
+                />
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-200">
+                <span>Change Due:</span>
+                <span className="text-emerald-600 dark:text-emerald-400">${changeDue.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
             <div className="flex justify-between">
@@ -375,6 +438,40 @@ export const POS: React.FC = () => {
         </div>
       </div>
 
+      {showScannerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-md w-full p-6 space-y-4 text-center">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-brand-500" />
+                <span>Camera Barcode Scanner</span>
+              </h3>
+              <button onClick={() => setShowScannerModal(false)} className="text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="h-44 bg-slate-900 rounded-xl flex items-center justify-center relative overflow-hidden border-2 border-brand-500/50">
+              <div className="w-full h-0.5 bg-red-500 absolute top-1/2 animate-pulse shadow-lg shadow-red-500" />
+              <span className="text-xs font-mono text-slate-400">Simulated Camera Feed Active...</span>
+            </div>
+            <div className="space-y-2">
+              <span className="text-xs text-slate-400 block font-semibold">Click a product to simulate barcode scan:</span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {products.slice(0, 4).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleSimulateScan(p)}
+                    className="p-2 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 hover:border-brand-500 rounded-xl font-bold text-slate-800 dark:text-slate-200 truncate"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-6 max-w-sm w-full text-center space-y-4 animate-scale-up">
@@ -387,6 +484,7 @@ export const POS: React.FC = () => {
             </div>
             <div className="p-3 bg-slate-50 dark:bg-navy-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 space-y-1 text-left">
               <div className="flex justify-between"><span>Payment Method:</span> <span className="font-bold">{paymentMethod}</span></div>
+              {paymentMethod === 'CASH' && <div className="flex justify-between"><span>Change Given:</span> <span className="font-bold text-emerald-600">${changeDue.toFixed(2)}</span></div>}
               <div className="flex justify-between"><span>Audit Log:</span> <span className="font-bold text-emerald-600">Recorded</span></div>
               <div className="flex justify-between"><span>Stock Levels:</span> <span className="font-bold text-emerald-600">Updated</span></div>
             </div>
@@ -394,7 +492,7 @@ export const POS: React.FC = () => {
               onClick={() => setShowSuccessModal(false)}
               className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold text-sm"
             >
-              Print Receipt & Next Transaction
+              Print Thermal Receipt & Next Sale
             </button>
           </div>
         </div>

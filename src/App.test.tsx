@@ -15,4 +15,9 @@ describe('Enterprise ERP Application Suite', () => {
     expect(screen.getByText('Enterprise Overview')).toBeTruthy();
     expect(screen.getByText('Total Revenue')).toBeTruthy();
   });
+
+  it('displays active customer metrics card', () => {
+    render(<App />);
+    expect(screen.getByText('Active Customers')).toBeTruthy();
+  });
 });

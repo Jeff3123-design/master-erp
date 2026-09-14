@@ -29,10 +29,14 @@ interface AppContextType {
 
   products: Product[];
   customers: Customer[];
+  setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
   suppliers: Supplier[];
+  setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
   sales: Sale[];
   purchases: Purchase[];
+  setPurchases: React.Dispatch<React.SetStateAction<Purchase[]>>;
   vendorBills: VendorBill[];
+  setVendorBills: React.Dispatch<React.SetStateAction<VendorBill[]>>;
   expenses: Expense[];
   auditLogs: AuditLog[];
   aiDocuments: AIDocument[];
@@ -354,10 +358,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSalesPermission,
         products,
         customers,
+        setCustomers,
         suppliers,
+        setSuppliers,
         sales,
         purchases,
+        setPurchases,
         vendorBills,
+        setVendorBills,
         expenses,
         auditLogs,
         aiDocuments,

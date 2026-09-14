@@ -1,8 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { VendorBill } from '../../types';
+import { DollarSign, X } from 'lucide-react';
 
 export const VendorBills: React.FC = () => {
-  const { vendorBills, payVendorBill } = useApp();
+  const { vendorBills, setVendorBills, setSuppliers, addAuditLog, showToast } = useApp();
+  const [selectedBill, setSelectedBill] = useState<VendorBill | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+
+  const handleSettleBill = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBill || paymentAmount <= 0) return;
+
+    setVendorBills((prev) =>
+      prev.map((b) => (b.id === selectedBill.id ? { ...b, status: 'PAID' } : b))
+    );
+
+    setSuppliers((prev) =>
+      prev.map((s) =>
+        s.id === selectedBill.supplierId
+          ? { ...s, balanceOwed: Math.max(0, s.balanceOwed - paymentAmount) }
+          : s
+      )
+    );
+
+    addAuditLog('VENDOR_BILL_PAID', 'Finance', selectedBill.billNumber, { status: selectedBill.status }, { status: 'PAID', amount: paymentAmount });
+    showToast(`Payment of $${paymentAmount.toFixed(2)} posted for Bill ${selectedBill.billNumber}`, 'success');
+    setSelectedBill(null);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -46,7 +71,10 @@ export const VendorBills: React.FC = () => {
                 <td className="py-3 px-4 text-right">
                   {b.status !== 'PAID' && (
                     <button
-                      onClick={() => payVendorBill(b.id)}
+                      onClick={() => {
+                        setSelectedBill(b);
+                        setPaymentAmount(b.amount);
+                      }}
                       className="px-3 py-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg shadow-xs"
                     >
                       Record Payment
@@ -58,6 +86,50 @@ export const VendorBills: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {selectedBill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <form onSubmit={handleSettleBill} className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-sm w-full p-6 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-brand-500" />
+                <span>Settle Vendor Bill</span>
+              </h3>
+              <button type="button" onClick={() => setSelectedBill(null)} className="text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-3 bg-slate-50 dark:bg-navy-800 rounded-xl text-xs space-y-1">
+              <div className="flex justify-between"><span>Bill Number:</span> <span className="font-bold font-mono">{selectedBill.billNumber}</span></div>
+              <div className="flex justify-between"><span>Supplier:</span> <span className="font-bold">{selectedBill.supplierName}</span></div>
+              <div className="flex justify-between"><span>Bill Amount:</span> <span className="font-extrabold text-amber-600">${selectedBill.amount.toFixed(2)}</span></div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-400 block mb-1">Payment Amount ($) *</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                value={paymentAmount || ''}
+                onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl text-sm font-bold text-brand-600"
+              />
+            </div>
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedBill(null)}
+                className="px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button type="submit" className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl">
+                Post Outbound Payment
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
