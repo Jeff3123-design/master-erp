@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Sidebar } from './components/layout/Sidebar';
@@ -52,12 +52,23 @@ import { AuditLogs } from './pages/admin/AuditLogs';
 import { SettingsPage } from './pages/admin/Settings';
 
 const AppContent: React.FC = () => {
-  const { activeTab } = useApp();
+  const { activeTab, setActiveTab, currentUser, salesPermissions, showToast } = useApp();
   const [isMobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Role Redirection Guard
+  useEffect(() => {
+    if (currentUser.role === 'sales_team') {
+      if (activeTab !== 'dashboard' && !salesPermissions[activeTab]) {
+        // Find first allowed app
+        const firstAllowed = Object.keys(salesPermissions).find((key) => salesPermissions[key]) || 'pos';
+        setActiveTab(firstAllowed);
+        showToast(`Redirected: Sales Team role does not have access to restricted route`, 'info');
+      }
+    }
+  }, [currentUser.role, activeTab, salesPermissions]);
 
   const renderCurrentView = () => {
     switch (activeTab) {
-      // Dashboard
       case 'dashboard':
         return <Dashboard />;
 
@@ -134,10 +145,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-navy-950 flex flex-col lg:flex-row font-sans text-slate-900 dark:text-slate-100 antialiased selection:bg-brand-500 selection:text-white">
-      {/* Sidebar Navigation */}
       <Sidebar isOpenMobile={isMobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
 
-      {/* Main Body Shell */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen pb-16 lg:pb-0">
         <Header onOpenMobileNav={() => setMobileNavOpen(true)} />
 
@@ -148,7 +157,6 @@ const AppContent: React.FC = () => {
         <MobileNav />
       </div>
 
-      {/* Global Drawers & Modals */}
       <GlobalSearchModal />
       <NotificationDrawer />
       <ToastContainer />

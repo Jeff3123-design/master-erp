@@ -1,6 +1,5 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { useTheme } from '../../context/ThemeContext';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -29,7 +28,7 @@ import {
   ClipboardList,
   Settings,
   X,
-  Layers,
+  Zap,
 } from 'lucide-react';
 
 interface NavItem {
@@ -157,14 +156,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
       >
         <div className="h-16 px-5 flex items-center justify-between border-b border-navy-800 bg-navy-950">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
-              <Layers className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-brand-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
               <span className="font-bold text-white text-base tracking-wide flex items-center gap-1.5">
-                NEXUS<span className="text-brand-500">ERP</span>
+                BUZZ<span className="text-amber-500 font-extrabold">ERP</span>
               </span>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest block -mt-1 font-mono">Enterprise Shop</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest block -mt-1 font-mono">Enterprise Suite</span>
             </div>
           </div>
           <button

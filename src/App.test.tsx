@@ -3,10 +3,10 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import App from './App';
 
-describe('Enterprise ERP Application Suite', () => {
-  it('renders application brand header', () => {
+describe('Buzz ERP Application Suite', () => {
+  it('renders Buzz ERP brand header', () => {
     render(<App />);
-    expect(screen.getByText('NEXUS')).toBeTruthy();
+    expect(screen.getByText('BUZZ')).toBeTruthy();
     expect(screen.getByText('ERP')).toBeTruthy();
   });
 
@@ -16,8 +16,9 @@ describe('Enterprise ERP Application Suite', () => {
     expect(screen.getByText('Total Revenue')).toBeTruthy();
   });
 
-  it('displays active customer metrics card', () => {
+  it('displays active customer metrics card and Buzz App Suite Launcher', () => {
     render(<App />);
     expect(screen.getByText('Active Customers')).toBeTruthy();
+    expect(screen.getByText('Buzz App Suite Launcher')).toBeTruthy();
   });
 });

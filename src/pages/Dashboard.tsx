@@ -10,23 +10,75 @@ import {
   Plus,
   RefreshCw,
   Clock,
+  ShoppingBag,
+  RotateCcw,
+  CreditCard,
+  Package,
+  Boxes,
+  ArrowRightLeft,
+  SlidersHorizontal,
+  Truck,
+  Building2,
+  FileCheck2,
+  Receipt,
+  PieChart,
+  BarChart3,
+  LineChart,
+  FileSearch,
+  FileCheck,
+  FolderKanban,
+  UserCheck,
+  ShieldCheck,
+  ClipboardList,
+  Settings,
+  Lock,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const chartData = [
-  { name: 'Mon', sales: 4200, expenses: 1400 },
-  { name: 'Tue', sales: 5800, expenses: 2100 },
-  { name: 'Wed', sales: 6900, expenses: 1800 },
-  { name: 'Thu', sales: 8400, expenses: 3200 },
-  { name: 'Fri', sales: 11200, expenses: 2900 },
-  { name: 'Sat', sales: 14500, expenses: 4100 },
-  { name: 'Sun', sales: 9800, expenses: 2300 },
+  { name: 'Mon', sales: 42000, expenses: 14000 },
+  { name: 'Tue', sales: 58000, expenses: 21000 },
+  { name: 'Wed', sales: 69000, expenses: 18000 },
+  { name: 'Thu', sales: 84000, expenses: 32000 },
+  { name: 'Fri', sales: 112000, expenses: 29000 },
+  { name: 'Sat', sales: 145000, expenses: 41000 },
+  { name: 'Sun', sales: 98000, expenses: 23000 },
+];
+
+interface AppCard {
+  id: string;
+  name: string;
+  category: string;
+  icon: React.ElementType;
+  color: string;
+}
+
+const ALL_APPS: AppCard[] = [
+  { id: 'pos', name: 'POS Terminal', category: 'Sales', icon: ShoppingCart, color: 'bg-blue-500' },
+  { id: 'sales', name: 'Sales Ledger', category: 'Sales', icon: ShoppingBag, color: 'bg-indigo-500' },
+  { id: 'returns', name: 'Returns', category: 'Sales', icon: RotateCcw, color: 'bg-sky-500' },
+  { id: 'customers', name: 'Customers', category: 'Sales', icon: Users, color: 'bg-emerald-500' },
+  { id: 'credit_sales', name: 'Credit Sales', category: 'Sales', icon: CreditCard, color: 'bg-amber-500' },
+
+  { id: 'products', name: 'Products', category: 'Inventory', icon: Package, color: 'bg-teal-500' },
+  { id: 'stock', name: 'Stock Levels', category: 'Inventory', icon: Boxes, color: 'bg-green-500' },
+  { id: 'adjustments', name: 'Reconciliation', category: 'Inventory', icon: SlidersHorizontal, color: 'bg-cyan-500' },
+
+  { id: 'purchases', name: 'Purchase Orders', category: 'Purchasing', icon: Truck, color: 'bg-purple-500' },
+  { id: 'suppliers', name: 'Suppliers', category: 'Purchasing', icon: Building2, color: 'bg-fuchsia-500' },
+  { id: 'vendor_bills', name: 'Vendor Bills', category: 'Purchasing', icon: FileCheck2, color: 'bg-rose-500' },
+
+  { id: 'expenses', name: 'Expenses', category: 'Finance', icon: Receipt, color: 'bg-amber-600' },
+  { id: 'profit_loss', name: 'Profit & Loss', category: 'Finance', icon: PieChart, color: 'bg-emerald-600' },
+
+  { id: 'receipt_scanner', name: 'Receipt Scanner', category: 'AI Suite', icon: FileSearch, color: 'bg-violet-500' },
+  { id: 'audit_logs', name: 'Audit Logs', category: 'Admin', icon: ClipboardList, color: 'bg-slate-600' },
+  { id: 'settings', name: 'Admin Settings', category: 'Admin', icon: Settings, color: 'bg-navy-700' },
 ];
 
 export const Dashboard: React.FC = () => {
-  const { sales, products, customers, auditLogs, setActiveTab } = useApp();
+  const { sales, products, customers, auditLogs, setActiveTab, currentUser, salesPermissions, showToast } = useApp();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
   const totalRevenue = sales.reduce((acc, s) => acc + (s.status !== 'VOIDED' ? s.totalAmount : 0), 0);
   const totalOrders = sales.filter((s) => s.status !== 'VOIDED').length;
@@ -39,21 +91,13 @@ export const Dashboard: React.FC = () => {
     }, 600);
   };
 
-  if (error) {
-    return (
-      <div className="p-8 text-center bg-white dark:bg-navy-900 rounded-2xl border border-red-200 dark:border-red-900 my-8">
-        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Failed to load Dashboard data</h3>
-        <p className="text-sm text-slate-500 mb-4">An unexpected network response occurred while querying metrics.</p>
-        <button
-          onClick={() => setError(false)}
-          className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700"
-        >
-          Retry Load
-        </button>
-      </div>
-    );
-  }
+  const handleAppClick = (appId: string) => {
+    if (currentUser.role === 'sales_team' && !salesPermissions[appId]) {
+      showToast(`Access Restricted: Sales Team role does not have permission for ${appId.replace('_', ' ')}`, 'error');
+      return;
+    }
+    setActiveTab(appId);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -82,6 +126,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200/80 dark:border-navy-800 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
@@ -92,7 +137,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
-              ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              KSh {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="flex items-center space-x-1.5 mt-1 text-xs text-emerald-600 font-semibold">
               <ArrowUpRight className="w-4 h-4" />
@@ -148,6 +193,52 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* BUZZ APP SUITE LAUNCHER (ICON GRID) */}
+      <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200/80 dark:border-navy-800 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
+              <span>Buzz App Suite Launcher</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">Quick access module launcher. Restricted apps are locked based on role permissions.</p>
+          </div>
+          <span className="text-xs font-mono px-2 py-0.5 bg-slate-100 dark:bg-navy-800 text-slate-500 rounded font-bold">
+            Role: {currentUser.role.replace('_', ' ').toUpperCase()}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {ALL_APPS.map((app) => {
+            const Icon = app.icon;
+            const isRestricted = currentUser.role === 'sales_team' && !salesPermissions[app.id];
+
+            return (
+              <div
+                key={app.id}
+                onClick={() => handleAppClick(app.id)}
+                className={`p-3.5 rounded-xl border flex flex-col items-center justify-center text-center cursor-pointer transition-all select-none relative group ${
+                  isRestricted
+                    ? 'opacity-40 bg-slate-100 dark:bg-navy-950/60 border-slate-200 dark:border-navy-800 hover:border-red-400'
+                    : 'bg-slate-50/80 dark:bg-navy-800/80 hover:bg-white dark:hover:bg-navy-800 border-slate-200/80 dark:border-navy-700 hover:border-brand-500 hover:shadow-md'
+                }`}
+              >
+                {isRestricted && (
+                  <div className="absolute top-2 right-2 p-0.5 bg-red-100 text-red-600 rounded">
+                    <Lock className="w-3 h-3" />
+                  </div>
+                )}
+                <div className={`w-10 h-10 rounded-xl ${app.color} text-white flex items-center justify-center shadow-md mb-2 group-hover:scale-105 transition-transform`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs line-clamp-1">{app.name}</span>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block mt-0.5 font-semibold">{app.category}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Charts & Activity Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200/80 dark:border-navy-800 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">

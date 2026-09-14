@@ -14,41 +14,34 @@ interface ModuleConfig {
 }
 
 const ALL_MODULES: ModuleConfig[] = [
-  // Sales
   { key: 'pos', label: 'POS Terminal', category: 'SALES', description: 'Cashier checkout grid and payment processing' },
   { key: 'sales', label: 'Sales History', category: 'SALES', description: 'View and search past sales transactions' },
   { key: 'returns', label: 'Returns & Refunds', category: 'SALES', description: 'Process customer product returns and store credits' },
   { key: 'customers', label: 'Customer Directory', category: 'SALES', description: 'Customer profiles and contact management' },
   { key: 'credit_sales', label: 'Credit Sales', category: 'SALES', description: 'Track outstanding customer accounts receivable' },
 
-  // Inventory
   { key: 'products', label: 'Products Catalog', category: 'INVENTORY', description: 'Master product directory, prices, and SKUs' },
   { key: 'stock', label: 'Stock Valuation', category: 'INVENTORY', description: 'Stock asset valuation and reorder alerts' },
   { key: 'stock_movements', label: 'Stock Movements', category: 'INVENTORY', description: 'Inventory movement audit trail' },
   { key: 'adjustments', label: 'Stock Adjustments', category: 'INVENTORY', description: 'Reconcile physical inventory counts' },
 
-  // Purchasing
   { key: 'purchases', label: 'Purchase Orders', category: 'PURCHASING', description: 'Issue and approve vendor purchase orders' },
   { key: 'suppliers', label: 'Vendors / Suppliers', category: 'PURCHASING', description: 'Supplier CRM and contact directory' },
   { key: 'vendor_bills', label: 'Vendor Bills', category: 'PURCHASING', description: 'Accounts payable and due date tracking' },
 
-  // Finance
   { key: 'expenses', label: 'Expenses', category: 'FINANCE', description: 'Track store operational expenses and utilities' },
   { key: 'payments', label: 'Payments Ledger', category: 'FINANCE', description: 'Unified inbound/outbound payment history' },
   { key: 'profit_loss', label: 'Profit & Loss', category: 'FINANCE', description: 'Income statement and profit margins' },
   { key: 'financial_reports', label: 'Financial Reports', category: 'FINANCE', description: 'Export tax and compliance audit reports' },
 
-  // Analytics
   { key: 'sales_analytics', label: 'Sales Analytics', category: 'ANALYTICS', description: 'Visual revenue trend analytics' },
   { key: 'inventory_analytics', label: 'Inventory Analytics', category: 'ANALYTICS', description: 'Product turnover velocity' },
   { key: 'customer_analytics', label: 'Customer Analytics', category: 'ANALYTICS', description: 'Client lifetime value analysis' },
 
-  // AI & Documents
   { key: 'receipt_scanner', label: 'Receipt Scanner', category: 'AI & DOCUMENTS', description: 'Autonomous AI receipt OCR scanner' },
   { key: 'invoice_scanner', label: 'Invoice Scanner', category: 'AI & DOCUMENTS', description: 'Automated 3-way PO invoice matcher' },
   { key: 'documents', label: 'Document Vault', category: 'AI & DOCUMENTS', description: 'Encrypted document repository' },
 
-  // Admin
   { key: 'users', label: 'Users', category: 'ADMIN', description: 'Manage user access accounts' },
   { key: 'roles', label: 'Roles', category: 'ADMIN', description: 'RBAC security role configurations' },
   { key: 'audit_logs', label: 'Audit Logs', category: 'ADMIN', description: 'System-wide immutable operation audit trail' },
@@ -71,11 +64,11 @@ export const SettingsPage: React.FC = () => {
     <div className="space-y-6 animate-fade-in max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <span>System Settings & Sales Team Access Controls</span>
+          <span>Buzz ERP Admin App Assignment Settings</span>
           <Settings className="w-5 h-5 text-brand-500" />
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Configure module visibility and operational permissions assigned strictly to the Sales Team role.
+          Select which app icons and modules are clickable, visible, and usable for the Sales Team role.
         </p>
       </div>
 
@@ -90,9 +83,9 @@ export const SettingsPage: React.FC = () => {
 
       <div className="bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-4 shadow-xs">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Sales Team Module Assignments</h3>
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Sales Team Usable Modules</h3>
           <span className="text-xs text-slate-400 font-mono">
-            Enabled: {Object.values(salesPermissions).filter(Boolean).length} / {ALL_MODULES.length}
+            Enabled: {Object.values(salesPermissions).filter(Boolean).length} / {ALL_MODULES.length} Apps
           </span>
         </div>
 
