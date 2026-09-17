@@ -1,5 +1,27 @@
 export type UserRole = 'owner' | 'admin' | 'manager' | 'sales_team';
 
+export interface Branch {
+  id: string;
+  name: string;
+  code: string;
+  isMain: boolean;
+}
+
+export interface CashShift {
+  id: string;
+  cashierName: string;
+  startTime: string;
+  endTime?: string;
+  startingCash: number;
+  totalCashSales: number;
+  totalCreditSales: number;
+  totalCardSales: number;
+  expectedCash: number;
+  actualCash?: number;
+  variance?: number;
+  status: 'OPEN' | 'CLOSED';
+}
+
 export interface User {
   id: string;
   email: string;
@@ -49,6 +71,7 @@ export interface Customer {
   creditLimit: number;
   outstandingBalance: number;
   totalPurchases: number;
+  loyaltyPoints: number;
 }
 
 export interface Supplier {

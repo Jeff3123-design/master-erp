@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, Plus, Mail, Phone, X } from 'lucide-react';
+import { Search, Plus, Mail, Phone, X, Award } from 'lucide-react';
 
 export const Customers: React.FC = () => {
   const { customers, addCustomer } = useApp();
@@ -96,12 +96,19 @@ export const Customers: React.FC = () => {
               <div>
                 <span className="text-slate-400 block text-[10px]">Credit Balance</span>
                 <span className={`font-extrabold ${c.outstandingBalance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                  ${c.outstandingBalance.toFixed(2)}
+                  KSh {c.outstandingBalance.toLocaleString()}
+                </span>
+              </div>
+              <div className="text-center">
+                <span className="text-slate-400 block text-[10px]">Loyalty Points</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
+                  <Award className="w-3.5 h-3.5" />
+                  <span>{c.loyaltyPoints || 0} pts</span>
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-slate-400 block text-[10px]">Credit Limit</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">${c.creditLimit.toFixed(2)}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">KSh {c.creditLimit.toLocaleString()}</span>
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  Store,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,7 +16,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
-  const { setSearchOpen, setNotificationOpen, notifications, currentUser, setCurrentUser } = useApp();
+  const { setSearchOpen, setNotificationOpen, notifications, currentUser, setCurrentUser, branches, activeBranch, setActiveBranch } = useApp();
   const { theme, setTheme } = useTheme();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -43,6 +44,25 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
       </div>
 
       <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Store Location Switcher */}
+        <div className="hidden lg:flex items-center space-x-1.5 bg-slate-100 dark:bg-navy-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 text-xs text-slate-700 dark:text-slate-300">
+          <Store className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+          <select
+            value={activeBranch.id}
+            onChange={(e) => {
+              const selected = branches.find((b) => b.id === e.target.value);
+              if (selected) setActiveBranch(selected);
+            }}
+            className="bg-transparent font-medium focus:outline-none cursor-pointer text-slate-800 dark:text-slate-200"
+          >
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id} className="bg-white dark:bg-navy-900 text-slate-900 dark:text-white">
+                {branch.name} ({branch.code})
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="hidden md:flex items-center bg-slate-100 dark:bg-navy-800 p-1 rounded-lg border border-slate-200 dark:border-navy-700">
           <button
             onClick={() => setCurrentUser({ ...currentUser, role: 'owner' })}

@@ -12,6 +12,8 @@ import {
   Camera,
   X,
   DollarSign,
+  Clock,
+  Lock,
 } from 'lucide-react';
 
 interface CartItem {
@@ -20,13 +22,17 @@ interface CartItem {
 }
 
 export const POS: React.FC = () => {
-  const { products, customers, addSale, showToast } = useApp();
+  const { products, customers, addSale, showToast, activeShift, startShift, closeShift } = useApp();
+  const [showShiftModal, setShowShiftModal] = useState(false);
+  const [shiftStartingCash, setShiftStartingCash] = useState<number>(5000);
+  const [shiftActualCash, setShiftActualCash] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'CREDIT'>('CASH');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [redeemedPoints, setRedeemedPoints] = useState<number>(0);
   const [tenderedAmount, setTenderedAmount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -92,6 +98,18 @@ export const POS: React.FC = () => {
   const tax = subtotal * 0.08;
   const total = Math.max(0, subtotal + tax - discountAmount);
   const changeDue = Math.max(0, tenderedAmount - total);
+
+  const handleRedeemPoints = () => {
+    if (!selectedCustomer) return;
+    if (selectedCustomer.loyaltyPoints <= 0) {
+      showToast('Customer has no loyalty points available to redeem!', 'error');
+      return;
+    }
+    const maxRedeemableValue = Math.min(selectedCustomer.loyaltyPoints * 10, total);
+    setDiscountAmount((prev) => prev + maxRedeemableValue);
+    setRedeemedPoints(selectedCustomer.loyaltyPoints);
+    showToast(`Redeemed ${selectedCustomer.loyaltyPoints} points for KSh ${maxRedeemableValue.toFixed(2)} discount!`);
+  };
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -161,6 +179,38 @@ export const POS: React.FC = () => {
   return (
     <div className="h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 animate-fade-in overflow-hidden">
       <div className="flex-1 bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-4 flex flex-col min-h-0">
+        {/* Cash Drawer Shift Banner */}
+        <div className="mb-3 p-3 bg-slate-50 dark:bg-navy-800/80 rounded-xl border border-slate-200 dark:border-navy-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center space-x-2">
+            <Clock className="w-4 h-4 text-brand-500" />
+            <span className="font-bold text-slate-700 dark:text-slate-200">
+              Shift Status:{' '}
+              {activeShift ? (
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  OPEN (Started {activeShift.startTime} by {activeShift.cashierName})
+                </span>
+              ) : (
+                <span className="text-red-500 font-bold">CLOSED</span>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center space-x-3 font-semibold text-slate-600 dark:text-slate-300">
+            {activeShift && (
+              <>
+                <span>Starting: KSh {activeShift.startingCash.toLocaleString()}</span>
+                <span className="hidden sm:inline">Expected: KSh {activeShift.expectedCash.toLocaleString()}</span>
+              </>
+            )}
+            <button
+              onClick={() => setShowShiftModal(true)}
+              className="px-3 py-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg transition-colors flex items-center space-x-1"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>{activeShift ? 'Reconcile & Close Shift' : 'Open Cash Shift'}</span>
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1 flex items-center gap-2">
             <div className="relative flex-1">
@@ -289,10 +339,24 @@ export const POS: React.FC = () => {
               <option value="">Walk-in Customer (General)</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} (Credit: ${(c.creditLimit - c.outstandingBalance).toFixed(2)})
+                  {c.name} ({c.loyaltyPoints || 0} pts | Credit: KSh {(c.creditLimit - c.outstandingBalance).toLocaleString()})
                 </option>
               ))}
             </select>
+            {selectedCustomer && (selectedCustomer.loyaltyPoints || 0) > 0 && (
+              <div className="mt-2 flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-xs">
+                <span className="font-bold text-amber-700 dark:text-amber-400">
+                  {selectedCustomer.loyaltyPoints} Loyalty Points Available
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRedeemPoints}
+                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors text-[11px]"
+                >
+                  Redeem Points
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -468,6 +532,82 @@ export const POS: React.FC = () => {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Open/Close Shift Reconciliation Modal */}
+      {showShiftModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-md w-full p-6 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-brand-500" />
+                <span>{activeShift ? 'Cash Drawer Shift Reconciliation' : 'Open New Cash Shift'}</span>
+              </h3>
+              <button onClick={() => setShowShiftModal(false)} className="text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {activeShift ? (
+              <div className="space-y-3 text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-navy-800 rounded-xl space-y-1.5 text-slate-700 dark:text-slate-200">
+                  <div className="flex justify-between"><span>Cashier:</span><span className="font-bold">{activeShift.cashierName}</span></div>
+                  <div className="flex justify-between"><span>Starting Float:</span><span className="font-bold">KSh {activeShift.startingCash.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Cash Sales:</span><span className="font-bold text-emerald-600">+KSh {activeShift.totalCashSales.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-bold border-t border-slate-200 dark:border-navy-700 pt-1.5 text-slate-900 dark:text-white">
+                    <span>Expected Drawer Balance:</span>
+                    <span>KSh {activeShift.expectedCash.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">Actual Cash Counted (KSh)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={shiftActualCash || ''}
+                    onChange={(e) => setShiftActualCash(Number(e.target.value))}
+                    placeholder="Enter physical cash in drawer..."
+                    className="w-full p-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-sm text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    closeShift(shiftActualCash);
+                    setShowShiftModal(false);
+                  }}
+                  className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all"
+                >
+                  Close & Reconcile Cash Shift
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-600 dark:text-slate-300 block mb-1">Starting Cash Float (KSh)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={shiftStartingCash || ''}
+                    onChange={(e) => setShiftStartingCash(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-sm text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    startShift(shiftStartingCash);
+                    setShowShiftModal(false);
+                  }}
+                  className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all"
+                >
+                  Start Cash Shift
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

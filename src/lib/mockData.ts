@@ -47,9 +47,9 @@ export const INITIAL_PRODUCTS: Product[] = [
 ];
 
 export const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'Apex Tech Solutions', email: 'procurement@apextech.com', phone: '+1 (555) 019-2831', creditLimit: 10000, outstandingBalance: 2450.00, totalPurchases: 48900 },
-  { id: 'c2', name: 'Vanguard Design Studio', email: 'hello@vanguarddesign.co', phone: '+1 (555) 014-9981', creditLimit: 5000, outstandingBalance: 4890.00, totalPurchases: 12400 },
-  { id: 'c3', name: 'Starlight Retailers', email: 'orders@starlight.io', phone: '+1 (555) 088-3312', creditLimit: 15000, outstandingBalance: 0, totalPurchases: 89000 },
+  { id: 'c1', name: 'Apex Tech Solutions', email: 'procurement@apextech.com', phone: '+1 (555) 019-2831', creditLimit: 10000, outstandingBalance: 2450.00, totalPurchases: 48900, loyaltyPoints: 489 },
+  { id: 'c2', name: 'Vanguard Design Studio', email: 'hello@vanguarddesign.co', phone: '+1 (555) 014-9981', creditLimit: 5000, outstandingBalance: 4890.00, totalPurchases: 12400, loyaltyPoints: 124 },
+  { id: 'c3', name: 'Starlight Retailers', email: 'orders@starlight.io', phone: '+1 (555) 088-3312', creditLimit: 15000, outstandingBalance: 0, totalPurchases: 89000, loyaltyPoints: 890 },
 ];
 
 export const INITIAL_SUPPLIERS: Supplier[] = [

@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { Pagination } from '../../components/common/Pagination';
-import { Search, Plus, Edit2, X } from 'lucide-react';
+import { Search, Plus, Edit2, X, Barcode, Printer } from 'lucide-react';
 
 export const Products: React.FC = () => {
   const { products, addProduct, updateProduct } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
+  const [labelCopies, setLabelCopies] = useState<number>(10);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   // Pagination State
@@ -105,13 +108,25 @@ export const Products: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Products Catalog</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Master inventory items, SKUs, barcode tracking, and pricing rules.</p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center space-x-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Product</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              if (products.length > 0) setBarcodeProduct(products[0]);
+              setShowBarcodeModal(true);
+            }}
+            className="flex items-center space-x-2 px-3.5 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 rounded-xl text-sm font-semibold border border-slate-200 dark:border-navy-700 transition-colors"
+          >
+            <Printer className="w-4 h-4 text-brand-500" />
+            <span>Print Barcode Labels</span>
+          </button>
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center space-x-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Product</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row gap-3">
@@ -178,10 +193,21 @@ export const Products: React.FC = () => {
                         {p.stockQuantity} {p.unit}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right flex items-center justify-end space-x-1">
+                      <button
+                        onClick={() => {
+                          setBarcodeProduct(p);
+                          setShowBarcodeModal(true);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600"
+                        title="Print Barcodes"
+                      >
+                        <Barcode className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleOpenEdit(p)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600"
+                        title="Edit Product"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -201,6 +227,104 @@ export const Products: React.FC = () => {
           onPageChange={(page) => setCurrentPage(page)}
         />
       </div>
+
+      {/* Barcode Label Printing Utility Modal */}
+      {showBarcodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-2xl w-full p-6 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Printer className="w-5 h-5 text-brand-500" />
+                <span>Barcode Tag Generator</span>
+              </h3>
+              <button onClick={() => setShowBarcodeModal(false)} className="text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-semibold text-slate-400 block mb-1">Select Product</label>
+                <select
+                  value={barcodeProduct?.id || ''}
+                  onChange={(e) => {
+                    const found = products.find((p) => p.id === e.target.value);
+                    if (found) setBarcodeProduct(found);
+                  }}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200"
+                >
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-400 block mb-1">Number of Copies</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={labelCopies}
+                  onChange={(e) => setLabelCopies(Number(e.target.value))}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200"
+                />
+              </div>
+            </div>
+
+            {barcodeProduct && (
+              <div className="space-y-2">
+                <span className="font-semibold text-xs text-slate-400 block">Printable Sheet Preview ({labelCopies} Labels)</span>
+                <div className="p-4 bg-slate-100 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 max-h-60 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {Array.from({ length: Math.min(labelCopies, 12) }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="p-3 bg-white text-slate-900 rounded-lg border border-slate-300 flex flex-col items-center justify-between text-center font-sans shadow-2xs"
+                    >
+                      <span className="text-[10px] font-extrabold uppercase truncate w-full">{barcodeProduct.name}</span>
+                      <div className="my-1.5 w-full flex flex-col items-center">
+                        {/* Simulated Barcode Lines */}
+                        <div className="h-7 w-28 bg-slate-900 flex items-center justify-around px-1 py-0.5 rounded-2xs">
+                          {Array.from({ length: 18 }).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className={`h-full ${idx % 3 === 0 ? 'w-1 bg-white' : 'w-0.5 bg-white'}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[9px] font-mono tracking-widest mt-0.5">{barcodeProduct.barcode || barcodeProduct.sku}</span>
+                      </div>
+                      <span className="text-xs font-black text-brand-600">KSh {barcodeProduct.sellingPrice.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-200 dark:border-navy-800">
+              <button
+                type="button"
+                onClick={() => setShowBarcodeModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  window.print();
+                  setShowBarcodeModal(false);
+                }}
+                className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-sm"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Send to Thermal Label Printer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">

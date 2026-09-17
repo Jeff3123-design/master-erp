@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Product, Customer, Supplier, Sale, Purchase, VendorBill, Expense, AuditLog, AIDocument, NotificationItem } from '../types';
+import { User, Branch, CashShift, Product, Customer, Supplier, Sale, Purchase, VendorBill, Expense, AuditLog, AIDocument, NotificationItem } from '../types';
 import {
   INITIAL_USER,
   INITIAL_SALES_PERMISSIONS,
@@ -50,7 +50,7 @@ interface AppContextType {
   addSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Sale;
   voidSale: (saleId: string, reason: string) => void;
 
-  addCustomer: (customer: Omit<Customer, 'id' | 'outstandingBalance' | 'totalPurchases'>) => void;
+  addCustomer: (customer: Omit<Customer, 'id' | 'outstandingBalance' | 'totalPurchases' | 'loyaltyPoints'>) => void;
   addSupplier: (supplier: Omit<Supplier, 'id' | 'balanceOwed'>) => void;
 
   addPurchase: (purchase: Omit<Purchase, 'id' | 'createdAt'>) => void;
@@ -78,13 +78,85 @@ interface AppContextType {
   // Global Active Navigation Route
   activeTab: string;
   setActiveTab: (tab: string) => void;
+
+  // Multi-Branch Location Switcher
+  branches: Branch[];
+  activeBranch: Branch;
+  setActiveBranch: (branch: Branch) => void;
+
+  // Shift / Cash Drawer Management
+  activeShift: CashShift | null;
+  startShift: (startingCash: number) => void;
+  closeShift: (actualCash: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const INITIAL_BRANCHES: Branch[] = [
+  { id: 'b-main', name: 'Main Store - Nairobi HQ', code: 'NRB-01', isMain: true },
+  { id: 'b-west', name: 'Westlands Retail Outlet', code: 'WST-02', isMain: false },
+  { id: 'b-msa', name: 'Mombasa Port Branch', code: 'MSA-03', isMain: false },
+];
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
+  const [activeBranch, setActiveBranchState] = useState<Branch>(INITIAL_BRANCHES[0]);
+  const [activeShift, setActiveShift] = useState<CashShift | null>({
+    id: 'shift-001',
+    cashierName: 'Jane Smith',
+    startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    startingCash: 5000,
+    totalCashSales: 8072.78,
+    totalCardSales: 0,
+    totalCreditSales: 0,
+    expectedCash: 13072.78,
+    status: 'OPEN',
+  });
+
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USER);
   const [salesPermissions, setSalesPermissions] = useState<Record<string, boolean>>(INITIAL_SALES_PERMISSIONS);
+
+  const setActiveBranch = (branch: Branch) => {
+    setActiveBranchState(branch);
+    showToast(`Switched active store location to ${branch.name}`, 'info');
+  };
+
+  const startShift = (startingCash: number) => {
+    const newShift: CashShift = {
+      id: `shift-${Date.now()}`,
+      cashierName: currentUser.fullName,
+      startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      startingCash,
+      totalCashSales: 0,
+      totalCardSales: 0,
+      totalCreditSales: 0,
+      expectedCash: startingCash,
+      status: 'OPEN',
+    };
+    setActiveShift(newShift);
+    addAuditLog('SHIFT_STARTED', 'POS', newShift.id, null, { startingCash });
+    showToast(`Cash shift opened with starting balance of KSh ${startingCash.toLocaleString()}`);
+  };
+
+  const closeShift = (actualCash: number) => {
+    if (!activeShift) return;
+    const variance = actualCash - activeShift.expectedCash;
+    const closedShift: CashShift = {
+      ...activeShift,
+      endTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      actualCash,
+      variance,
+      status: 'CLOSED',
+    };
+    setActiveShift(null);
+    addAuditLog('SHIFT_CLOSED', 'POS', closedShift.id, activeShift, closedShift);
+    showToast(
+      `Shift closed. Cash Variance: ${
+        variance >= 0 ? `+KSh ${variance.toLocaleString()}` : `-KSh ${Math.abs(variance).toLocaleString()}`
+      }`,
+      variance < 0 ? 'error' : 'success'
+    );
+  };
 
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
@@ -203,14 +275,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     });
 
-    if (newSale.paymentMethod === 'CREDIT' && newSale.customerId) {
+    const pointsEarned = Math.floor(newSale.totalAmount / 100);
+    if (newSale.customerId) {
       setCustomers((prev) =>
         prev.map((c) =>
           c.id === newSale.customerId
             ? {
                 ...c,
-                outstandingBalance: c.outstandingBalance + newSale.totalAmount,
+                outstandingBalance: newSale.paymentMethod === 'CREDIT' ? c.outstandingBalance + newSale.totalAmount : c.outstandingBalance,
                 totalPurchases: c.totalPurchases + newSale.totalAmount,
+                loyaltyPoints: (c.loyaltyPoints || 0) + pointsEarned,
               }
             : c
         )
@@ -251,12 +325,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Sale ${targetSale.invoiceNumber} voided`, 'error');
   };
 
-  const addCustomer = (cData: Omit<Customer, 'id' | 'outstandingBalance' | 'totalPurchases'>) => {
+  const addCustomer = (cData: Omit<Customer, 'id' | 'outstandingBalance' | 'totalPurchases' | 'loyaltyPoints'>) => {
     const newCust: Customer = {
       ...cData,
       id: `c-${Date.now()}`,
       outstandingBalance: 0,
       totalPurchases: 0,
+      loyaltyPoints: 0,
     };
     setCustomers((prev) => [newCust, ...prev]);
     showToast(`Customer ${newCust.name} added`);
@@ -392,6 +467,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeToast,
         activeTab,
         setActiveTab,
+        branches,
+        activeBranch,
+        setActiveBranch,
+        activeShift,
+        startShift,
+        closeShift,
       }}
     >
       {children}
