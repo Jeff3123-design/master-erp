@@ -9,14 +9,31 @@ import {
   Moon,
   Monitor,
   Store,
+  Coins,
+  Sparkles,
 } from 'lucide-react';
+import { AIAssistantModal } from '../common/AIAssistantModal';
+import { CurrencyCode } from '../../types';
 
 interface HeaderProps {
   onOpenMobileNav: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
-  const { setSearchOpen, setNotificationOpen, notifications, currentUser, setCurrentUser, branches, activeBranch, setActiveBranch } = useApp();
+  const [isAiOpen, setIsAiOpen] = React.useState(false);
+  const {
+    setSearchOpen,
+    setNotificationOpen,
+    notifications,
+    currentUser,
+    setCurrentUser,
+    branches,
+    activeBranch,
+    setActiveBranch,
+    currencies,
+    activeCurrency,
+    setActiveCurrency,
+  } = useApp();
   const { theme, setTheme } = useTheme();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -58,6 +75,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
             {branches.map((branch) => (
               <option key={branch.id} value={branch.id} className="bg-white dark:bg-navy-900 text-slate-900 dark:text-white">
                 {branch.name} ({branch.code})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Multi-Currency Switcher */}
+        <div className="hidden md:flex items-center space-x-1.5 bg-slate-100 dark:bg-navy-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 text-xs text-slate-700 dark:text-slate-300">
+          <Coins className="w-3.5 h-3.5 text-amber-500" />
+          <select
+            value={activeCurrency.code}
+            onChange={(e) => setActiveCurrency(e.target.value as CurrencyCode)}
+            className="bg-transparent font-bold focus:outline-none cursor-pointer text-slate-800 dark:text-slate-200"
+          >
+            {Object.values(currencies).map((curr) => (
+              <option key={curr.code} value={curr.code} className="bg-white dark:bg-navy-900 text-slate-900 dark:text-white">
+                {curr.code} ({curr.symbol.trim()})
               </option>
             ))}
           </select>
@@ -117,6 +150,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
         </div>
 
         <button
+          onClick={() => setIsAiOpen(true)}
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 text-white text-xs font-bold transition-all shadow-md shadow-brand-500/20"
+          title="AI Co-Pilot Assistant"
+        >
+          <Sparkles className="w-4 h-4 animate-pulse text-amber-200" />
+          <span className="hidden sm:inline">AI Co-Pilot</span>
+        </button>
+
+        <button
           onClick={() => setNotificationOpen(true)}
           className="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800 transition-colors"
           title="Notifications"
@@ -127,6 +169,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
           )}
         </button>
       </div>
+
+      <AIAssistantModal isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
     </header>
   );
 };

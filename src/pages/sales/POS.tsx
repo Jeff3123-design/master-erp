@@ -14,7 +14,9 @@ import {
   DollarSign,
   Clock,
   Lock,
+  Printer,
 } from 'lucide-react';
+import { ReceiptModal } from '../../components/common/ReceiptModal';
 
 interface CartItem {
   product: Product;
@@ -38,6 +40,8 @@ export const POS: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [lastInvoiceNumber, setLastInvoiceNumber] = useState('');
+  const [lastCompletedSale, setLastCompletedSale] = useState<any>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   const categories = ['ALL', ...Array.from(new Set(products.map((p) => p.category)))];
 
@@ -139,7 +143,7 @@ export const POS: React.FC = () => {
 
     setTimeout(() => {
       const invNum = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
-      addSale({
+      const completed = addSale({
         invoiceNumber: invNum,
         customerId: selectedCustomer?.id,
         customerName: selectedCustomer?.name,
@@ -161,6 +165,7 @@ export const POS: React.FC = () => {
       });
 
       setLastInvoiceNumber(invNum);
+      setLastCompletedSale(completed);
       setIsProcessing(false);
       setShowSuccessModal(true);
       setCart([]);
@@ -628,15 +633,30 @@ export const POS: React.FC = () => {
               <div className="flex justify-between"><span>Audit Log:</span> <span className="font-bold text-emerald-600">Recorded</span></div>
               <div className="flex justify-between"><span>Stock Levels:</span> <span className="font-bold text-emerald-600">Updated</span></div>
             </div>
-            <button
-              onClick={() => setShowSuccessModal(false)}
-              className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold text-sm"
-            >
-              Print Thermal Receipt & Next Sale
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowReceiptModal(true)}
+                className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Receipt</span>
+              </button>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs"
+              >
+                Next Sale
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      <ReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        sale={lastCompletedSale}
+      />
     </div>
   );
 };

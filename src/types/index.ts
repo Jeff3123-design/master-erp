@@ -151,6 +151,15 @@ export interface AIDocument {
   uploadedAt: string;
 }
 
+export type CurrencyCode = 'USD' | 'KSH' | 'EUR' | 'GBP';
+
+export interface CurrencyConfig {
+  code: CurrencyCode;
+  symbol: string;
+  name: string;
+  exchangeRate: number; // Rate relative to USD
+}
+
 export interface NotificationItem {
   id: string;
   type: 'LOW_STOCK' | 'OUT_OF_STOCK' | 'OVERDUE_CREDIT' | 'OVERDUE_BILL' | 'PURCHASE_RECEIVED' | 'LARGE_EXPENSE' | 'STOCK_ADJUSTMENT' | 'AI_REVIEW';
