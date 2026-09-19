@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Sale } from '../../types';
-import { Search, Filter, Eye, AlertOctagon, X } from 'lucide-react';
+import { Search, Filter, Eye, AlertOctagon, X, Download } from 'lucide-react';
 
 export const SalesList: React.FC = () => {
   const { sales, voidSale, showToast } = useApp();
@@ -37,6 +37,36 @@ export const SalesList: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Sales Transactions</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Complete historical record of all completed, voided, and returned sales.</p>
         </div>
+        <button
+          onClick={() => {
+            if (filteredSales.length === 0) {
+              showToast('No sales records to export', 'error');
+              return;
+            }
+            const headers = ['Invoice Number', 'Customer', 'Payment Method', 'Status', 'Total Amount', 'Date'];
+            const rows = filteredSales.map((s) => [
+              s.invoiceNumber,
+              `"${s.customerName || 'Walk-in Customer'}"`,
+              s.paymentMethod,
+              s.status,
+              s.totalAmount,
+              new Date(s.createdAt).toLocaleString(),
+            ]);
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `buzz_sales_export_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Sales data exported to CSV successfully');
+          }}
+          className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center space-x-1.5 shrink-0 self-start sm:self-auto"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export Sales CSV</span>
+        </button>
       </div>
 
       <div className="bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row gap-3">

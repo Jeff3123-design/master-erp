@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { Pagination } from '../../components/common/Pagination';
-import { Search, Plus, Edit2, X, Barcode, Printer } from 'lucide-react';
+import { Search, Plus, Edit2, X, Barcode, Printer, Download } from 'lucide-react';
 
 export const Products: React.FC = () => {
-  const { products, addProduct, updateProduct } = useApp();
+  const { products, addProduct, updateProduct, showToast } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -111,13 +111,45 @@ export const Products: React.FC = () => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
+              if (filteredProducts.length === 0) {
+                showToast('No products available to export', 'error');
+                return;
+              }
+              const headers = ['SKU', 'Barcode', 'Product Name', 'Category', 'Cost Price', 'Selling Price', 'Stock Quantity', 'Unit'];
+              const rows = filteredProducts.map((p) => [
+                p.sku,
+                p.barcode || '',
+                `"${p.name}"`,
+                p.category,
+                p.costPrice,
+                p.sellingPrice,
+                p.stockQuantity,
+                p.unit,
+              ]);
+              const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement('a');
+              link.setAttribute('href', encodedUri);
+              link.setAttribute('download', `buzz_products_catalog_${Date.now()}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              showToast('Product catalog exported to CSV successfully');
+            }}
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 rounded-xl text-sm font-semibold border border-slate-200 dark:border-navy-700 transition-colors"
+          >
+            <Download className="w-4 h-4 text-brand-500" />
+            <span>Export Catalog CSV</span>
+          </button>
+          <button
+            onClick={() => {
               if (products.length > 0) setBarcodeProduct(products[0]);
               setShowBarcodeModal(true);
             }}
-            className="flex items-center space-x-2 px-3.5 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 rounded-xl text-sm font-semibold border border-slate-200 dark:border-navy-700 transition-colors"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 rounded-xl text-sm font-semibold border border-slate-200 dark:border-navy-700 transition-colors"
           >
             <Printer className="w-4 h-4 text-brand-500" />
-            <span>Print Barcode Labels</span>
+            <span>Print Barcodes</span>
           </button>
           <button
             onClick={handleOpenAdd}
