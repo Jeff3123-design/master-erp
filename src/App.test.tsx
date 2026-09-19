@@ -27,4 +27,9 @@ describe('Buzz ERP Application Suite', () => {
     expect(screen.getByText('AI Co-Pilot')).toBeTruthy();
     expect(screen.getByText('USD ($)')).toBeTruthy();
   });
+
+  it('renders Supabase DB connection status pill in header', () => {
+    render(<App />);
+    expect(screen.getByText('Supabase DB')).toBeTruthy();
+  });
 });

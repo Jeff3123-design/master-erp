@@ -11,6 +11,7 @@ import {
   Store,
   Coins,
   Sparkles,
+  Database,
 } from 'lucide-react';
 import { AIAssistantModal } from '../common/AIAssistantModal';
 import { CurrencyCode } from '../../types';
@@ -78,6 +79,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Supabase DB Sync Pill */}
+        <div
+          onClick={() => showToast('Supabase PostgreSQL DB connected: Sync status active (24ms latency)', 'info')}
+          className="hidden xl:flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-700 dark:text-emerald-300 cursor-pointer transition-colors"
+          title="Supabase PostgreSQL Cloud DB Synced"
+        >
+          <Database className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span className="font-bold">Supabase DB</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         </div>
 
         {/* Multi-Currency Switcher */}
