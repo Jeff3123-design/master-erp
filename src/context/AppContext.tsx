@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Branch, CashShift, Product, Customer, Supplier, Sale, Purchase, VendorBill, Expense, AuditLog, AIDocument, NotificationItem } from '../types';
+import { User, Branch, CashShift, Product, Customer, Supplier, Sale, Purchase, VendorBill, Expense, AuditLog, AIDocument, NotificationItem, CurrencyCode, CurrencyConfig } from '../types';
 import {
   INITIAL_USER,
   INITIAL_SALES_PERMISSIONS,
@@ -88,7 +88,20 @@ interface AppContextType {
   activeShift: CashShift | null;
   startShift: (startingCash: number) => void;
   closeShift: (actualCash: number) => void;
+
+  // Multi-Currency Engine
+  currencies: Record<CurrencyCode, CurrencyConfig>;
+  activeCurrency: CurrencyConfig;
+  setActiveCurrency: (code: CurrencyCode) => void;
+  formatCurrency: (amountInUSD: number) => string;
 }
+
+const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
+  USD: { code: 'USD', symbol: '$', name: 'US Dollar', exchangeRate: 1.0 },
+  KSH: { code: 'KSH', symbol: 'KSh ', name: 'Kenyan Shilling', exchangeRate: 130.0 },
+  EUR: { code: 'EUR', symbol: '€', name: 'Euro', exchangeRate: 0.92 },
+  GBP: { code: 'GBP', symbol: '£', name: 'British Pound', exchangeRate: 0.79 },
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -101,6 +114,22 @@ const INITIAL_BRANCHES: Branch[] = [
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [activeBranch, setActiveBranchState] = useState<Branch>(INITIAL_BRANCHES[0]);
+  const [activeCurrencyCode, setActiveCurrencyCode] = useState<CurrencyCode>('USD');
+
+  const activeCurrency = CURRENCIES[activeCurrencyCode];
+
+  const setActiveCurrency = (code: CurrencyCode) => {
+    setActiveCurrencyCode(code);
+    showToast(`Base currency switched to ${CURRENCIES[code].name} (${CURRENCIES[code].symbol})`, 'info');
+  };
+
+  const formatCurrency = (amountInUSD: number): string => {
+    const converted = amountInUSD * activeCurrency.exchangeRate;
+    return `${activeCurrency.symbol}${converted.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
   const [activeShift, setActiveShift] = useState<CashShift | null>({
     id: 'shift-001',
     cashierName: 'Jane Smith',
@@ -473,6 +502,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeShift,
         startShift,
         closeShift,
+        currencies: CURRENCIES,
+        activeCurrency,
+        setActiveCurrency,
+        formatCurrency,
       }}
     >
       {children}

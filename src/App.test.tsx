@@ -21,4 +21,10 @@ describe('Buzz ERP Application Suite', () => {
     expect(screen.getByText('Active Customers')).toBeTruthy();
     expect(screen.getByText('Buzz App Suite Launcher')).toBeTruthy();
   });
+
+  it('renders AI Co-Pilot button and currency switcher in header', () => {
+    render(<App />);
+    expect(screen.getByText('AI Co-Pilot')).toBeTruthy();
+    expect(screen.getByText('USD ($)')).toBeTruthy();
+  });
 });
