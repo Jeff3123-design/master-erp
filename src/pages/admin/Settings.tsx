@@ -6,8 +6,12 @@ import {
   CheckCircle2,
   Database,
   RefreshCw,
+  Coins,
+  UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { checkSupabaseConnection, SupabaseHealth } from '../../lib/supabase';
+import { CurrencyCode } from '../../types';
 
 interface ModuleConfig {
   key: string;
@@ -52,7 +56,16 @@ const ALL_MODULES: ModuleConfig[] = [
 ];
 
 export const SettingsPage: React.FC = () => {
-  const { salesPermissions, updateSalesPermission, currentUser, showToast } = useApp();
+  const {
+    salesPermissions,
+    updateSalesPermission,
+    currentUser,
+    setCurrentUser,
+    currencies,
+    activeCurrency,
+    setActiveCurrency,
+    showToast,
+  } = useApp();
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [isCheckingDb, setIsCheckingDb] = useState(false);
   const [dbHealth, setDbHealth] = useState<SupabaseHealth>({
@@ -99,6 +112,84 @@ export const SettingsPage: React.FC = () => {
           </span>
         </div>
       )}
+
+      {/* System Preferences & Role Profile Control */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* User Role Profile Switcher */}
+        <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3 shadow-xs">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-xl">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">User Role & Preview Mode</h3>
+              <p className="text-xs text-slate-400">Switch role profile view to test permissions</p>
+            </div>
+          </div>
+
+          <div className="flex items-center bg-slate-100 dark:bg-navy-800 p-1.5 rounded-xl border border-slate-200 dark:border-navy-700">
+            <button
+              onClick={() => {
+                setCurrentUser({ ...currentUser, role: 'owner' });
+                showToast('Switched to Admin/Owner View', 'info');
+              }}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center space-x-1.5 ${
+                currentUser.role === 'owner' || currentUser.role === 'admin'
+                  ? 'bg-white dark:bg-navy-900 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Admin Role</span>
+            </button>
+            <button
+              onClick={() => {
+                setCurrentUser({ ...currentUser, role: 'sales_team' });
+                showToast('Switched to Sales Team View', 'info');
+              }}
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center space-x-1.5 ${
+                currentUser.role === 'sales_team'
+                  ? 'bg-white dark:bg-navy-900 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+              }`}
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Sales Team Role</span>
+            </button>
+          </div>
+        </div>
+
+        {/* System Active Base Currency Selector */}
+        <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3 shadow-xs">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-xl">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">System Base Currency</h3>
+              <p className="text-xs text-slate-400">Select active store currency and real-time exchange rates</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <select
+              value={activeCurrency.code}
+              onChange={(e) => {
+                const code = e.target.value as CurrencyCode;
+                setActiveCurrency(code);
+                showToast(`Store currency updated to ${code}`, 'success');
+              }}
+              className="w-full bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {Object.values(currencies).map((curr) => (
+                <option key={curr.code} value={curr.code}>
+                  {curr.name} ({curr.code} - {curr.symbol.trim()})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* Supabase SaaS Tenant Engine Diagnostics */}
       <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-4 shadow-xs">

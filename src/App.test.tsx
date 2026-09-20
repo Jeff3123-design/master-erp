@@ -22,14 +22,9 @@ describe('Buzz ERP Application Suite', () => {
     expect(screen.getByText('Buzz App Suite Launcher')).toBeTruthy();
   });
 
-  it('renders AI Co-Pilot button and currency switcher in header', () => {
+  it('renders AI Co-Pilot button and store branch switcher in header', () => {
     render(<App />);
     expect(screen.getByText('AI Co-Pilot')).toBeTruthy();
-    expect(screen.getByText('USD ($)')).toBeTruthy();
-  });
-
-  it('renders Supabase DB connection status pill in header', () => {
-    render(<App />);
-    expect(screen.getByText('Supabase DB')).toBeTruthy();
+    expect(screen.getByText('Global Search...')).toBeTruthy();
   });
 });

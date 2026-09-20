@@ -59,7 +59,7 @@ export const POS: React.FC = () => {
         setEnteredPin('');
         showToast('Cashier authenticated successfully', 'success');
       } else if (nextPin.length === 4) {
-        showToast('Invalid PIN entered (Try default: 1234)', 'error');
+        showToast('Invalid PIN entered', 'error');
         setTimeout(() => setEnteredPin(''), 500);
       }
     }
@@ -75,7 +75,7 @@ export const POS: React.FC = () => {
         setPendingOverrideAction(null);
       }
     } else {
-      showToast('Invalid Manager PIN (Default: 9999)', 'error');
+      showToast('Invalid Manager PIN', 'error');
       setManagerPin('');
     }
   };
@@ -227,7 +227,7 @@ export const POS: React.FC = () => {
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Front-Desk POS Locked</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enter 4-digit Cashier PIN to unlock terminal (Default: 1234)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enter 4-digit Cashier PIN to unlock terminal</p>
           </div>
 
           <div className="flex justify-center space-x-3 py-2">
@@ -755,7 +755,7 @@ export const POS: React.FC = () => {
             </div>
             <div>
               <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Manager Override Required</h3>
-              <p className="text-xs text-slate-400 mt-1">Enter Manager/Admin PIN to approve price override or restricted operation (Default: 9999)</p>
+              <p className="text-xs text-slate-400 mt-1">Enter Manager/Admin PIN to approve price override or restricted operation</p>
             </div>
 
             <input

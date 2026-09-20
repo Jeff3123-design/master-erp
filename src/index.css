@@ -8,6 +8,15 @@
   }
 }
 
+@layer utilities {
+  .bg-pink-blue-gradient {
+    @apply bg-gradient-to-r from-rose-500 via-pink-500 to-blue-600;
+  }
+  .text-pink-blue-gradient {
+    @apply bg-gradient-to-r from-rose-500 via-pink-500 to-blue-600 bg-clip-text text-transparent;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
