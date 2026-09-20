@@ -34,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav }) => {
     currencies,
     activeCurrency,
     setActiveCurrency,
+    showToast,
   } = useApp();
   const { theme, setTheme } = useTheme();
 

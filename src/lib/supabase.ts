@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Environment variables or fallback demo credentials for Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mock-tenant.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockKey';
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://mock-tenant.supabase.co';
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockKey';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

@@ -43,6 +43,43 @@ export const POS: React.FC = () => {
   const [lastCompletedSale, setLastCompletedSale] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
+  // Cashier PIN Lock Screen & Manager Override state
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [enteredPin, setEnteredPin] = useState<string>('');
+  const [showManagerOverrideModal, setShowManagerOverrideModal] = useState<boolean>(false);
+  const [managerPin, setManagerPin] = useState<string>('');
+  const [pendingOverrideAction, setPendingOverrideAction] = useState<(() => void) | null>(null);
+
+  const handlePinKeyPress = (digit: string) => {
+    if (enteredPin.length < 4) {
+      const nextPin = enteredPin + digit;
+      setEnteredPin(nextPin);
+      if (nextPin === '1234' || nextPin === '0000') {
+        setIsLocked(false);
+        setEnteredPin('');
+        showToast('Cashier authenticated successfully', 'success');
+      } else if (nextPin.length === 4) {
+        showToast('Invalid PIN entered (Try default: 1234)', 'error');
+        setTimeout(() => setEnteredPin(''), 500);
+      }
+    }
+  };
+
+  const handleManagerOverrideConfirm = () => {
+    if (managerPin === '9999' || managerPin === '1234') {
+      showToast('Manager override approved', 'success');
+      setShowManagerOverrideModal(false);
+      setManagerPin('');
+      if (pendingOverrideAction) {
+        pendingOverrideAction();
+        setPendingOverrideAction(null);
+      }
+    } else {
+      showToast('Invalid Manager PIN (Default: 9999)', 'error');
+      setManagerPin('');
+    }
+  };
+
   const categories = ['ALL', ...Array.from(new Set(products.map((p) => p.category)))];
 
   const filteredProducts = products.filter((p) => {
@@ -181,11 +218,68 @@ export const POS: React.FC = () => {
     showToast(`Barcode Scanned: ${product.name}`, 'success');
   };
 
+  if (isLocked) {
+    return (
+      <div className="h-[calc(100vh-5rem)] flex items-center justify-center animate-fade-in">
+        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-navy-800 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto border border-brand-200 dark:border-navy-700">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Front-Desk POS Locked</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enter 4-digit Cashier PIN to unlock terminal (Default: 1234)</p>
+          </div>
+
+          <div className="flex justify-center space-x-3 py-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className={`w-4 h-4 rounded-full border-2 transition-all ${
+                  enteredPin.length > i
+                    ? 'bg-brand-600 border-brand-600 scale-110'
+                    : 'border-slate-300 dark:border-navy-700'
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5 max-w-xs mx-auto">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((btn) => (
+              <button
+                key={btn}
+                onClick={() => {
+                  if (btn === 'C') setEnteredPin('');
+                  else if (btn === '⌫') setEnteredPin((p) => p.slice(0, -1));
+                  else handlePinKeyPress(btn);
+                }}
+                className="py-3 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-base transition-all active:scale-95"
+              >
+                {btn}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 animate-fade-in overflow-hidden">
+      {/* Top POS Action Toolbar */}
+      <div className="hidden">
+        <button onClick={() => setIsLocked(true)}>Lock Station</button>
+      </div>
       <div className="flex-1 bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 p-4 flex flex-col min-h-0">
         {/* Cash Drawer Shift Banner */}
         <div className="mb-3 p-3 bg-slate-50 dark:bg-navy-800/80 rounded-xl border border-slate-200 dark:border-navy-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <button
+            onClick={() => setIsLocked(true)}
+            className="px-2.5 py-1 bg-slate-200 dark:bg-navy-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 rounded-lg font-bold flex items-center space-x-1"
+            title="Lock POS Terminal"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-500" />
+            <span>Lock Terminal</span>
+          </button>
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 text-brand-500" />
             <span className="font-bold text-slate-700 dark:text-slate-200">
@@ -646,6 +740,48 @@ export const POS: React.FC = () => {
                 className="flex-1 py-2.5 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs"
               >
                 Next Sale
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manager PIN Override Modal */}
+      {showManagerOverrideModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-sm w-full p-6 space-y-4 text-center">
+            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Manager Override Required</h3>
+              <p className="text-xs text-slate-400 mt-1">Enter Manager/Admin PIN to approve price override or restricted operation (Default: 9999)</p>
+            </div>
+
+            <input
+              type="password"
+              maxLength={4}
+              value={managerPin}
+              onChange={(e) => setManagerPin(e.target.value)}
+              placeholder="••••"
+              className="w-full text-center tracking-widest text-xl p-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl font-mono font-bold"
+            />
+
+            <div className="flex space-x-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowManagerOverrideModal(false);
+                  setManagerPin('');
+                }}
+                className="flex-1 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleManagerOverrideConfirm}
+                className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold"
+              >
+                Approve Override
               </button>
             </div>
           </div>
